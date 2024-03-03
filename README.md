@@ -1,6 +1,6 @@
 # go-log
 
-This library provides a wrapper for the Zap Uber logger in Go, making it easy to log events at different levels (debug, info, warning, error). It uses the Logger interface to offer a consistent way to interact with the logger.
+This library provides a wrapper for the [Zap Uber logger])(https://github.com/uber-go/zap/tree/master) in Go, making it easy to log events at different levels (debug, info, warning, error). It uses the Logger interface to offer a consistent way to interact with the logger.
 
 ## Installation
 ```bash
