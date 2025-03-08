@@ -2,16 +2,10 @@ package golog
 
 import (
 	"context"
+	"fmt"
 
 	"go.uber.org/zap"
 )
-
-type Logger interface {
-	Debug(ctx context.Context, opt ...Option)
-	Info(ctx context.Context, opt ...Option)
-	Warn(ctx context.Context, opt ...Option)
-	Error(ctx context.Context, opt ...Option)
-}
 
 type logger interface {
 	Debug(msg string, fields ...zap.Field)
@@ -20,38 +14,43 @@ type logger interface {
 	Error(msg string, fields ...zap.Field)
 }
 
-type Log struct {
+// Logger is the main logging structure.
+type Logger struct {
 	log logger
 }
 
-func New() (Log, error) {
+// New creates a new Logger instance.
+func New() (Logger, error) {
 	res, err := newZapLogger()
 	if err != nil {
-		return Log{}, err
+		return Logger{}, fmt.Errorf("failed to create zap logger: %w", err)
 	}
 
-	return Log{
+	return Logger{
 		log: res,
 	}, nil
-
 }
 
-func (r Log) Debug(ctx context.Context, msg string, options ...Option) {
+// Debug logs a debug message.
+func (r Logger) Debug(ctx context.Context, msg string, options ...Option) {
 	opts := applyOptions(options...)
 	r.log.Debug(msg, opts.fields...)
 }
 
-func (r Log) Info(ctx context.Context, msg string, options ...Option) {
+// Info logs an info message.
+func (r Logger) Info(ctx context.Context, msg string, options ...Option) {
 	opts := applyOptions(options...)
 	r.log.Info(msg, opts.fields...)
 }
 
-func (r Log) Warn(ctx context.Context, msg string, options ...Option) {
+// Warn logs a warning message.
+func (r Logger) Warn(ctx context.Context, msg string, options ...Option) {
 	opts := applyOptions(options...)
 	r.log.Warn(msg, opts.fields...)
 }
 
-func (r Log) Error(ctx context.Context, msg string, options ...Option) {
+// Error logs an error message.
+func (r Logger) Error(ctx context.Context, msg string, options ...Option) {
 	opts := applyOptions(options...)
 	r.log.Error(msg, opts.fields...)
 }
