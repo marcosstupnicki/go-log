@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	golog "github.com/marcosstupnicki/go-log/pkg"
+	golog "github.com/marcosstupnicki/go-log"
 )
 
 func main() {
