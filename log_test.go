@@ -2,54 +2,118 @@ package golog
 
 import (
 	"context"
+	"errors"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"go.uber.org/zap/zapcore"
 )
 
-func TestLoggerCreation(t *testing.T) {
-	log, err := New()
-	assert.NotNil(t, log)
-	assert.NoError(t, err)
+func TestNew_DefaultLevel(t *testing.T) {
+	logger, err := New("local")
+	require.NoError(t, err)
+	require.NotNil(t, logger.log)
+	assert.Equal(t, "env", logger.envField.Key)
 }
 
-func TestLogLevels(t *testing.T) {
-	log, err := New()
-	assert.Nil(t, err)
+func TestNew_WithLevel(t *testing.T) {
+	tests := []struct {
+		name  string
+		level zapcore.Level
+	}{
+		{"debug", DebugLevel},
+		{"info", InfoLevel},
+		{"warn", WarnLevel},
+		{"error", ErrorLevel},
+	}
 
-	// Verify that log functions do not return errors
-	assert.NotPanics(t, func() { log.Debug(context.Background(), "Debug log message") })
-	assert.NotPanics(t, func() { log.Info(context.Background(), "Info log message") })
-	assert.NotPanics(t, func() { log.Warn(context.Background(), "Warning log message") })
-	assert.NotPanics(t, func() { log.Error(context.Background(), "Error log message") })
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			logger, err := New("test", WithLevel(tt.level))
+			require.NoError(t, err)
+			assert.NotNil(t, logger.log)
+		})
+	}
 }
 
-func TestContextHandling(t *testing.T) {
-	log, err := New()
-	assert.Nil(t, err)
-
-	ctx := context.WithValue(context.Background(), "key", "value")
-
-	// Verify that log functions accept context without panics
-	assert.NotPanics(t, func() { log.Debug(ctx, "Debug log message") })
+func TestNew_EnvironmentInEnvField(t *testing.T) {
+	logger, err := New("staging")
+	require.NoError(t, err)
+	assert.Equal(t, "env", logger.envField.Key)
 }
 
-func TestLogFormat(t *testing.T) {
-	log, err := New()
-	assert.Nil(t, err)
+func TestLogMethods_NoPanic(t *testing.T) {
+	logger, err := New("test", WithLevel(DebugLevel))
+	require.NoError(t, err)
+	ctx := context.Background()
 
-	// Verify that log functions generate logs with messages and options
 	assert.NotPanics(t, func() {
-		log.Info(context.Background(), "Info log message", WithField("key", "value"))
+		logger.Debug(ctx, "debug message")
+		logger.Info(ctx, "info message")
+		logger.Warn(ctx, "warn message")
+		logger.Error(ctx, "error message")
 	})
 }
 
-func TestOptionsConfiguration(t *testing.T) {
-	log, err := New()
-	assert.Nil(t, err)
+func TestLogMethods_WithFields(t *testing.T) {
+	logger, err := New("test", WithLevel(DebugLevel))
+	require.NoError(t, err)
+	ctx := context.Background()
 
-	// Verify that options are applied correctly
 	assert.NotPanics(t, func() {
-		log.Info(context.Background(), "Info log message", WithField("key", "value"))
+		logger.Info(ctx, "with fields",
+			Field("name", "test"),
+			Field("count", 42),
+			Field("active", true),
+			Field("elapsed", 150*time.Millisecond),
+			Field("err", errors.New("test error")),
+			Field("data", map[string]string{"key": "value"}),
+		)
 	})
+}
+
+func TestLogMethods_FieldTypes(t *testing.T) {
+	logger, err := New("test", WithLevel(DebugLevel))
+	require.NoError(t, err)
+	ctx := context.Background()
+
+	now := time.Now()
+	assert.NotPanics(t, func() {
+		logger.Info(ctx, "all field types",
+			Field("str", "hello"),
+			Field("int", 42),
+			Field("int64", int64(999)),
+			Field("float64", 3.14),
+			Field("bool", true),
+			Field("error", errors.New("oops")),
+			Field("duration", 5*time.Second),
+			Field("time", now),
+			Field("slice", []string{"a", "b"}),
+		)
+	})
+}
+
+func TestMergeAll_EnvPlusContextPlusCallSite(t *testing.T) {
+	logger, err := New("test")
+	require.NoError(t, err)
+	ctx := Enrich(context.Background(), Field("request_id", "abc-123"))
+
+	// mergeAll should combine env + context (request_id) + call (status)
+	fields := logger.mergeAll(ctx, Field("status", 200))
+
+	// env + request_id + status = 3
+	assert.Len(t, fields, 3)
+}
+
+func TestMergeAll_EnvAlwaysPresent(t *testing.T) {
+	logger, err := New("prod")
+	require.NoError(t, err)
+	ctx := context.Background()
+
+	fields := logger.mergeAll(ctx)
+	// At minimum the env field is always present
+	assert.Len(t, fields, 1)
+	assert.Equal(t, "env", fields[0].Key)
 }
