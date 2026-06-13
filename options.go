@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 )
 
 // --- Per-log-call field options ---
@@ -61,13 +60,13 @@ func Field(key string, value interface{}) Option {
 
 // logConfig holds configuration for the logger builder.
 type logConfig struct {
-	level zapcore.Level
+	level Level
 }
 
 // defaultLogConfig returns the default logger configuration.
 func defaultLogConfig() logConfig {
 	return logConfig{
-		level: zapcore.InfoLevel,
+		level: InfoLevel,
 	}
 }
 
@@ -77,7 +76,7 @@ type LogOption func(*logConfig)
 // WithLevel sets the minimum log level. Use the package-level constants:
 // golog.DebugLevel, golog.InfoLevel, golog.WarnLevel, golog.ErrorLevel.
 // Default is InfoLevel.
-func WithLevel(level zapcore.Level) LogOption {
+func WithLevel(level Level) LogOption {
 	return func(c *logConfig) {
 		c.level = level
 	}

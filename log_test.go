@@ -8,7 +8,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap/zapcore"
 )
 
 func TestNew_DefaultLevel(t *testing.T) {
@@ -21,7 +20,7 @@ func TestNew_DefaultLevel(t *testing.T) {
 func TestNew_WithLevel(t *testing.T) {
 	tests := []struct {
 		name  string
-		level zapcore.Level
+		level Level
 	}{
 		{"debug", DebugLevel},
 		{"info", InfoLevel},
